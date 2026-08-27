@@ -1,0 +1,116 @@
+// Prisma schema
+// DEV: SQLite (kører uden nogen ekstern opsætning).
+// PRODUKTION: skift provider til "postgresql" og sæt DATABASE_URL til din Postgres-connection string.
+// Alt andet i skemaet er identisk mellem SQLite og Postgres, så migreringen er triviel.
+//
+// OBS: SQLite-connectoren i Prisma understøtter ikke native enums. Derfor er alle felter,
+// der tidligere var Prisma-enums (Role, FuelType, Transmission, CarStatus, LeadType), skrevet
+// som String-felter herunder. De tilladte værdier er uændrede og håndhæves i stedet i
+// applikationslaget med zod-valideringsskemaer i server/src/routes/*.ts, så det kun er den
+// database-tekniske repræsentation der er ændret — ikke hvilke værdier der er gyldige.
+//
+// Tilladte værdier (uændrede):
+//   Role:         OWNER | ADMIN
+//   FuelType:     BENZIN | DIESEL | EL | HYBRID | PLUGIN_HYBRID
+//   Transmission: MANUEL | AUTOMATIK
+//   CarStatus:    DRAFT | FOR_SALE | RESERVED | SOLD
+//   LeadType:     GENERAL | BIL_FORSPORGSEL | FINANSIERING
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // prod: "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Forhandler. I dag er der kun én, men modellen er klar til flere forhandlere (SaaS).
+model Dealer {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  email     String?
+  phone     String?
+  address   String?
+  city      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+  cars  Car[]
+  leads Lead[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("ADMIN") // OWNER | ADMIN
+  dealerId     String
+  dealer       Dealer   @relation(fields: [dealerId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Car {
+  id                 String        @id @default(cuid())
+  dealerId           String
+  dealer             Dealer        @relation(fields: [dealerId], references: [id])
+
+  make               String
+  model              String
+  variant            String?
+  year               Int
+  price              Int
+  mileage            Int
+  registration       String?
+  registrationPublic Boolean       @default(false)
+  vin                String?
+  fuel               String        // BENZIN | DIESEL | EL | HYBRID | PLUGIN_HYBRID
+  transmission       String        // MANUEL | AUTOMATIK
+  horsepower         Int?
+  color              String?
+
+  description        String        @default("")
+  equipment          String        @default("[]") // JSON-array af strenge
+
+  status             String        @default("DRAFT") // DRAFT | FOR_SALE | RESERVED | SOLD
+  slug               String        @unique
+
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  publishedAt        DateTime?
+  soldAt             DateTime?
+
+  images             CarImage[]
+  leads              Lead[]
+
+  @@index([status])
+  @@index([make, model])
+}
+
+model CarImage {
+  id        String   @id @default(cuid())
+  carId     String
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// Leads dækker både generel kontakt, bilforespørgsler og finansieringsforespørgsler
+model Lead {
+  id        String   @id @default(cuid())
+  dealerId  String
+  dealer    Dealer   @relation(fields: [dealerId], references: [id])
+  carId     String?
+  car       Car?     @relation(fields: [carId], references: [id])
+  type      String   @default("GENERAL") // GENERAL | BIL_FORSPORGSEL | FINANSIERING
+  name      String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime @default(now())
+}
