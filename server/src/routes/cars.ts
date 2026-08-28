@@ -5,10 +5,6 @@ import { prisma } from "../db";
 const router = Router();
 
 // GET /api/cars - offentlig liste med filtre + paginering
-// Kun FOR_SALE og RESERVED vises. DRAFT og SOLD er skjult fra hjemmesiden.
-// Mærke, model, brændstof og gearkasse understøtter flervalg via kommasepareret liste,
-// fx make=BMW,Volkswagen
-
 router.get("/", async (req, res) => {
   const {
     make,
@@ -92,9 +88,7 @@ router.get("/", async (req, res) => {
       take,
       include: {
         images: {
-          orderBy: {
-            order: "asc",
-          },
+          orderBy: { order: "asc" },
         },
       },
     }),
@@ -103,6 +97,7 @@ router.get("/", async (req, res) => {
   ]);
 
   res.json({
+    // VIGTIGT: wrapperen løser TypeScript-fejlen
     items: items.map((car) => serializeCar(car)),
     total,
     page: Number(page) || 1,
@@ -111,18 +106,12 @@ router.get("/", async (req, res) => {
   });
 });
 
-// GET /api/cars/filters - dynamiske filtermuligheder baseret på aktive biler.
-// Mærke/model/brændstof/gearkasse returneres som unikke værdier med antal
-// (til flervalgs-UI).
-
+// GET /api/cars/filters
 router.get("/filters", async (_req, res) => {
   const cars = await prisma.car.findMany({
     where: {
-      status: {
-        in: ["FOR_SALE", "RESERVED"],
-      },
+      status: { in: ["FOR_SALE", "RESERVED"] },
     },
-
     select: {
       make: true,
       model: true,
@@ -156,7 +145,9 @@ router.get("/filters", async (_req, res) => {
 
     yearRange: [
       years.length ? Math.min(...years) : 2000,
-      years.length ? Math.max(...years) : new Date().getFullYear(),
+      years.length
+        ? Math.max(...years)
+        : new Date().getFullYear(),
     ],
 
     kmRange: [
@@ -166,9 +157,7 @@ router.get("/filters", async (_req, res) => {
   });
 });
 
-// GET /api/cars/:slug - detaljeside.
-// Skjuler nummerplade medmindre registrationPublic er sat.
-
+// GET /api/cars/:slug
 router.get("/:slug", async (req, res) => {
   const car = await prisma.car.findUnique({
     where: {
@@ -177,9 +166,7 @@ router.get("/:slug", async (req, res) => {
 
     include: {
       images: {
-        orderBy: {
-          order: "asc",
-        },
+        orderBy: { order: "asc" },
       },
     },
   });
@@ -199,7 +186,9 @@ router.get("/:slug", async (req, res) => {
 
 export function serializeCar(
   car: any,
-  opts: { includePrivate?: boolean } = { includePrivate: true }
+  opts: { includePrivate?: boolean } = {
+    includePrivate: true,
+  }
 ) {
   return {
     id: car.id,
@@ -241,21 +230,21 @@ export function serializeCar(
   };
 }
 
-export function safeParseJsonArray(value: string): string[] {
+export function safeParseJsonArray(
+  value: string
+): string[] {
   try {
     const parsed = JSON.parse(value);
 
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed
+      : [];
   } catch {
     return [];
   }
 }
 
-// Splitter en kommasepareret query-param til en liste af trimmede,
-// ikke-tomme værdier.
-// "BMW,Volkswagen" -> ["BMW", "Volkswagen"].
-// Understøtter fortsat et enkelt mærke som før.
-
+// "BMW,Volkswagen" -> ["BMW", "Volkswagen"]
 function parseList(param?: string): string[] {
   if (!param) return [];
 
@@ -265,17 +254,17 @@ function parseList(param?: string): string[] {
     .filter(Boolean);
 }
 
-// Tæller forekomster af hver unikke værdi og returnerer dem sorteret alfabetisk,
-// så fx "Chevrolet" kun vises én gang i filtrene uanset hvor mange Chevrolet-biler
-// der er på lager.
-
+// Tæller forekomster af hver værdi
 function countBy(
   items: string[]
 ): { value: string; count: number }[] {
   const map = new Map<string, number>();
 
   for (const item of items) {
-    map.set(item, (map.get(item) || 0) + 1);
+    map.set(
+      item,
+      (map.get(item) || 0) + 1
+    );
   }
 
   return Array.from(map.entries())
@@ -283,7 +272,9 @@ function countBy(
       value,
       count,
     }))
-    .sort((a, b) => a.value.localeCompare(b.value, "da"));
+    .sort((a, b) =>
+      a.value.localeCompare(b.value, "da")
+    );
 }
 
 export default router;
