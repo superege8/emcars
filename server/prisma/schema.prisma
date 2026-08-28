@@ -1,31 +1,12 @@
-// Prisma schema
-// DEV: SQLite (kører uden nogen ekstern opsætning).
-// PRODUKTION: skift provider til "postgresql" og sæt DATABASE_URL til din Postgres-connection string.
-// Alt andet i skemaet er identisk mellem SQLite og Postgres, så migreringen er triviel.
-//
-// OBS: SQLite-connectoren i Prisma understøtter ikke native enums. Derfor er alle felter,
-// der tidligere var Prisma-enums (Role, FuelType, Transmission, CarStatus, LeadType), skrevet
-// som String-felter herunder. De tilladte værdier er uændrede og håndhæves i stedet i
-// applikationslaget med zod-valideringsskemaer i server/src/routes/*.ts, så det kun er den
-// database-tekniske repræsentation der er ændret — ikke hvilke værdier der er gyldige.
-//
-// Tilladte værdier (uændrede):
-//   Role:         OWNER | ADMIN
-//   FuelType:     BENZIN | DIESEL | EL | HYBRID | PLUGIN_HYBRID
-//   Transmission: MANUEL | AUTOMATIK
-//   CarStatus:    DRAFT | FOR_SALE | RESERVED | SOLD
-//   LeadType:     GENERAL | BIL_FORSPORGSEL | FINANSIERING
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite" // prod: "postgresql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Forhandler. I dag er der kun én, men modellen er klar til flere forhandlere (SaaS).
 model Dealer {
   id        String   @id @default(cuid())
   name      String
@@ -47,7 +28,7 @@ model User {
   email        String   @unique
   passwordHash String
   name         String
-  role         String   @default("ADMIN") // OWNER | ADMIN
+  role         String   @default("ADMIN")
   dealerId     String
   dealer       Dealer   @relation(fields: [dealerId], references: [id])
   createdAt    DateTime @default(now())
@@ -68,15 +49,15 @@ model Car {
   registration       String?
   registrationPublic Boolean       @default(false)
   vin                String?
-  fuel               String        // BENZIN | DIESEL | EL | HYBRID | PLUGIN_HYBRID
-  transmission       String        // MANUEL | AUTOMATIK
+  fuel               String
+  transmission       String
   horsepower         Int?
   color              String?
 
   description        String        @default("")
-  equipment          String        @default("[]") // JSON-array af strenge
+  equipment          String        @default("[]")
 
-  status             String        @default("DRAFT") // DRAFT | FOR_SALE | RESERVED | SOLD
+  status             String        @default("DRAFT")
   slug               String        @unique
 
   createdAt          DateTime      @default(now())
@@ -100,14 +81,13 @@ model CarImage {
   createdAt DateTime @default(now())
 }
 
-// Leads dækker både generel kontakt, bilforespørgsler og finansieringsforespørgsler
 model Lead {
   id        String   @id @default(cuid())
   dealerId  String
   dealer    Dealer   @relation(fields: [dealerId], references: [id])
   carId     String?
   car       Car?     @relation(fields: [carId], references: [id])
-  type      String   @default("GENERAL") // GENERAL | BIL_FORSPORGSEL | FINANSIERING
+  type      String   @default("GENERAL")
   name      String
   email     String
   phone     String?
