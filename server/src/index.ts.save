@@ -1,0 +1,76 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+app.use(cors());
+app.use(express.json());
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    message: "EM Cars backend virker",
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`EM Cars backend kører på http://localhost:${PORT}`);
+});
+cat > src/index.ts <<'EOF'
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { PrismaClient } from "@prisma/client";
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+const prisma = new PrismaClient();
+
+app.use(cors());
+app.use(express.json());
+
+// Health check
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    message: "EM Cars backend virker",
+  });
+});
+
+// Hent biler
+app.get("/api/cars", async (_req, res) => {
+  try {
+    const cars = await prisma.car.findMany({
+      where: {
+        status: "FOR_SALE",
+      },
+      include: {
+        images: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.json(cars);
+  } catch (error) {
+    console.error("Fejl ved hentning af biler:", error);
+
+    res.status(500).json({
+      error: "Kunne ikke hente biler",
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`EM Cars backend kører på http://localhost:${PORT}`);
+});
+EOF
+
