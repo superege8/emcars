@@ -25,14 +25,17 @@ const allowedOrigins = [
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
+    // Tillad requests uden Origin-header
     if (!origin) {
       return callback(null, true);
     }
 
+    // Tillad kendte origins
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
+    // Tillad Vercel deployments
     if (origin.endsWith(".vercel.app")) {
       return callback(null, true);
     }
@@ -61,25 +64,30 @@ const corsOptions: cors.CorsOptions = {
 // MIDDLEWARE
 // =====================================================
 
+// CORS skal være før routes
 app.use(cors(corsOptions));
 
+// JSON body parser
 app.use(express.json());
 
-// VIGTIGT:
-// Gør det muligt for requireAuth() at læse
-// httpOnly cookie "token".
+// Cookie parser
+// VIGTIGT: requireAuth() bruger req.cookies.token
 app.use(cookieParser());
 
 // =====================================================
 // ROUTES
 // =====================================================
 
+// Authentication
 app.use("/api/auth", authRoutes);
 
+// Admin
 app.use("/api/admin", adminRoutes);
 
+// Leads
 app.use("/api/leads", leadsRoutes);
 
+// Cars
 app.use("/api/cars", carsRoutes);
 
 // =====================================================
