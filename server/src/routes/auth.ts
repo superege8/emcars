@@ -11,6 +11,10 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+// =====================================================
+// LOGIN
+// =====================================================
+
 router.post("/login", async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
 
@@ -50,9 +54,8 @@ router.post("/login", async (req, res) => {
     role: user.role,
   });
 
-  // VIGTIGT:
-  // Frontend og backend ligger på forskellige Vercel-domæner,
-  // derfor skal cookien være SameSite=None og Secure.
+  // Frontend og backend ligger på forskellige Vercel-domæner.
+  // Derfor skal auth-cookien være cross-site kompatibel.
   res.cookie("token", token, {
     httpOnly: true,
     secure: true,
@@ -71,6 +74,10 @@ router.post("/login", async (req, res) => {
   });
 });
 
+// =====================================================
+// LOGOUT
+// =====================================================
+
 router.post("/logout", (_req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
@@ -81,6 +88,10 @@ router.post("/logout", (_req, res) => {
 
   return res.json({ ok: true });
 });
+
+// =====================================================
+// CURRENT USER
+// =====================================================
 
 router.get("/me", requireAuth, async (req, res) => {
   const user = await prisma.user.findUnique({
