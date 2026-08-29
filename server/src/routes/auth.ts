@@ -11,23 +11,36 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-const isProd = process.env.NODE_ENV === "production";
-
 router.post("/login", async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
+
   if (!parsed.success) {
-    return res.status(400).json({ error: "Udfyld email og adgangskode." });
+    return res.status(400).json({
+      error: "Udfyld email og adgangskode.",
+    });
   }
+
   const { email, password } = parsed.data;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
   if (!user) {
-    return res.status(401).json({ error: "Forkert email eller adgangskode." });
+    return res.status(401).json({
+      error: "Forkert email eller adgangskode.",
+    });
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
+  const valid = await bcrypt.compare(
+    password,
+    user.passwordHash
+  );
+
   if (!valid) {
-    return res.status(401).json({ error: "Forkert email eller adgangskode." });
+    return res.status(401).json({
+      error: "Forkert email eller adgangskode.",
+    });
   }
 
   const token = signToken({
@@ -37,25 +50,57 @@ router.post("/login", async (req, res) => {
     role: user.role,
   });
 
+  // VIGTIGT:
+  // Frontend og backend ligger på forskellige Vercel-domæner,
+  // derfor skal cookien være SameSite=None og Secure.
   res.cookie("token", token, {
     httpOnly: true,
-    secure: isProd,
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none",
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
   });
 
-  res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  return res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    },
+  });
 });
 
 router.post("/logout", (_req, res) => {
-  res.clearCookie("token");
-  res.json({ ok: true });
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  });
+
+  return res.json({ ok: true });
 });
 
 router.get("/me", requireAuth, async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
-  if (!user) return res.status(404).json({ error: "Bruger ikke fundet." });
-  res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+  });
+
+  if (!user) {
+    return res.status(404).json({
+      error: "Bruger ikke fundet.",
+    });
+  }
+
+  return res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    },
+  });
 });
 
 export default router;
