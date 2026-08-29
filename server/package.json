@@ -40,7 +40,7 @@
     "typescript": "^5.9.3"
   },
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "keywords": [],
   "author": "",
   "license": "ISC"
