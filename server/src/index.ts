@@ -21,33 +21,49 @@ const prisma = new PrismaClient();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
+  "https://emcars-client.vercel.app",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Tillad requests uden Origin-header
-      // fx server-to-server requests
-      if (!origin) {
-        return callback(null, true);
-      }
+const corsOptions = {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) => {
+    if (!origin) {
+      return callback(null, true);
+    }
 
-      // Tillad vores kendte origins
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-      // Tillad Vercel deployments
-      if (origin.endsWith(".vercel.app")) {
-        return callback(null, true);
-      }
+    if (origin.endsWith(".vercel.app")) {
+      return callback(null, true);
+    }
 
-      return callback(new Error("Ikke tilladt af CORS"));
-    },
-    credentials: true,
-  })
-);
+    return callback(new Error("Ikke tilladt af CORS"));
+  },
+
+  credentials: true,
+
+  methods: [
+    "GET",
+    "POST",
+    "PUT",
+    "DELETE",
+    "PATCH",
+    "OPTIONS",
+  ],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+  ],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
@@ -582,14 +598,10 @@ app.delete("/api/cars/:id", async (req, res) => {
 });
 
 // =========================
-// START SERVER
+// VERCEL
 // =========================
 
-app.listen(PORT, () => {
-  console.log(
-    `EM Cars backend kører på port ${PORT}`
-  );
-});
+export default app;
 
 // =========================
 // GRACEFUL SHUTDOWN
