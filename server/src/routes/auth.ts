@@ -16,62 +16,70 @@ const loginSchema = z.object({
 // =====================================================
 
 router.post("/login", async (req, res) => {
-  const parsed = loginSchema.safeParse(req.body);
+  try {
+    const parsed = loginSchema.safeParse(req.body);
 
-  if (!parsed.success) {
-    return res.status(400).json({
-      error: "Udfyld email og adgangskode.",
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Udfyld email og adgangskode.",
+      });
+    }
+
+    const { email, password } = parsed.data;
+
+    const user = await prisma.user.findUnique({
+      where: { email },
     });
-  }
 
-  const { email, password } = parsed.data;
+    if (!user) {
+      return res.status(401).json({
+        error: "Forkert email eller adgangskode.",
+      });
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+    const valid = await bcrypt.compare(
+      password,
+      user.passwordHash
+    );
 
-  if (!user) {
-    return res.status(401).json({
-      error: "Forkert email eller adgangskode.",
-    });
-  }
+    if (!valid) {
+      return res.status(401).json({
+        error: "Forkert email eller adgangskode.",
+      });
+    }
 
-  const valid = await bcrypt.compare(
-    password,
-    user.passwordHash
-  );
-
-  if (!valid) {
-    return res.status(401).json({
-      error: "Forkert email eller adgangskode.",
-    });
-  }
-
-  const token = signToken({
-    userId: user.id,
-    dealerId: user.dealerId,
-    email: user.email,
-    role: user.role,
-  });
-
-  // Frontend og backend ligger på forskellige Vercel-domæner.
-  // Derfor skal auth-cookien være cross-site kompatibel.
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: "/",
-  });
-
-  return res.json({
-    user: {
-      id: user.id,
+    const token = signToken({
+      userId: user.id,
+      dealerId: user.dealerId,
       email: user.email,
-      name: user.name,
       role: user.role,
-    },
-  });
+    });
+
+    // Frontend og backend ligger på forskellige Vercel-domæner.
+    // Derfor skal cookien være cross-site kompatibel.
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+
+    return res.status(500).json({
+      error: "Der skete en fejl under login.",
+    });
+  }
 });
 
 // =====================================================
@@ -86,7 +94,9 @@ router.post("/logout", (_req, res) => {
     path: "/",
   });
 
-  return res.json({ ok: true });
+  return res.status(200).json({
+    ok: true,
+  });
 });
 
 // =====================================================
@@ -94,24 +104,34 @@ router.post("/logout", (_req, res) => {
 // =====================================================
 
 router.get("/me", requireAuth, async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.user!.userId },
-  });
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: req.user!.userId,
+      },
+    });
 
-  if (!user) {
-    return res.status(404).json({
-      error: "Bruger ikke fundet.",
+    if (!user) {
+      return res.status(404).json({
+        error: "Bruger ikke fundet.",
+      });
+    }
+
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("ME ERROR:", error);
+
+    return res.status(500).json({
+      error: "Der skete en fejl.",
     });
   }
-
-  return res.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    },
-  });
 });
 
 export default router;
