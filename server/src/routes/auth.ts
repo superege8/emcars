@@ -55,8 +55,6 @@ router.post("/login", async (req, res) => {
       role: user.role,
     });
 
-    // Frontend og backend ligger på forskellige Vercel-domæner.
-    // Derfor skal cookien være cross-site kompatibel.
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
