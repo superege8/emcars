@@ -19,19 +19,37 @@ import AdminLayout from "./components/AdminLayout";
 export default function App() {
   return (
     <Routes>
+      {/* =========================
+          OFFENTLIG SIDE
+      ========================= */}
 
-      {/* OFFENTLIG SIDE */}
       <Route path="/" element={<Home />} />
+
       <Route path="/biler" element={<CarsList />} />
-      <Route path="/biler/:id" element={<CarDetail />} />
+
+      {/* Bil-detaljeside
+          Home linker til /biler/:slug */}
+      <Route path="/biler/:slug" element={<CarDetail />} />
+
       <Route path="/om-os" element={<About />} />
+
       <Route path="/kontakt" element={<Contact />} />
+
       <Route path="/saelg-bil" element={<SellCar />} />
 
-      {/* LOGIN */}
-      <Route path="/admin/login" element={<Login />} />
+      {/* =========================
+          ADMIN LOGIN
+      ========================= */}
 
-      {/* ADMIN */}
+      <Route
+        path="/admin/login"
+        element={<Login />}
+      />
+
+      {/* =========================
+          ADMIN
+      ========================= */}
+
       <Route
         path="/admin"
         element={
@@ -40,13 +58,36 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Dashboard />} />
-        <Route path="biler" element={<CarsAdminList />} />
-        <Route path="biler/ny" element={<CarForm />} />
-        <Route path="biler/:id" element={<CarForm />} />
-        <Route path="henvendelser" element={<Leads />} />
-      </Route>
+        {/* /admin */}
+        <Route
+          index
+          element={<Dashboard />}
+        />
 
+        {/* /admin/biler */}
+        <Route
+          path="biler"
+          element={<CarsAdminList />}
+        />
+
+        {/* /admin/biler/ny */}
+        <Route
+          path="biler/ny"
+          element={<CarForm />}
+        />
+
+        {/* /admin/biler/:id */}
+        <Route
+          path="biler/:id"
+          element={<CarForm />}
+        />
+
+        {/* /admin/henvendelser */}
+        <Route
+          path="henvendelser"
+          element={<Leads />}
+        />
+      </Route>
     </Routes>
   );
 }
