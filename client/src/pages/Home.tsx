@@ -3,6 +3,14 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { Car } from "../types";
 
+type CarsResponse = {
+  items: Car[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 export default function Home() {
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,10 +22,10 @@ export default function Home() {
         setLoading(true);
         setError("");
 
-        const response = await api.get<Car[]>("/cars");
+        const response = await api.get<CarsResponse>("/cars");
 
-        if (Array.isArray(response)) {
-          setCars(response);
+        if (response && Array.isArray(response.items)) {
+          setCars(response.items);
         } else {
           setCars([]);
         }
@@ -48,6 +56,7 @@ export default function Home() {
           </Link>
 
           <nav className="flex items-center gap-6 text-sm text-white/60">
+
             <Link
               to="/"
               className="transition hover:text-white"
@@ -68,6 +77,7 @@ export default function Home() {
             >
               Admin
             </Link>
+
           </nav>
 
         </div>
@@ -120,6 +130,7 @@ export default function Home() {
         <div className="mb-8 flex items-end justify-between">
 
           <div>
+
             <p className="text-xs uppercase tracking-[0.2em] text-accent">
               Lager
             </p>
@@ -131,6 +142,7 @@ export default function Home() {
             <p className="mt-2 text-sm text-white/40">
               Se vores aktuelle biler til salg.
             </p>
+
           </div>
 
           <Link
@@ -154,19 +166,22 @@ export default function Home() {
         {/* ERROR */}
         {!loading && error && (
           <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-10 text-center">
+
             <p className="text-red-400">
               {error}
             </p>
 
             <p className="mt-2 text-sm text-white/30">
-              Kontrollér at backend-serveren kører på port 4000.
+              Kontrollér forbindelsen til backend-serveren.
             </p>
+
           </div>
         )}
 
         {/* EMPTY */}
         {!loading && !error && cars.length === 0 && (
           <div className="rounded-xl border border-white/10 bg-[#1c1c1f] p-10 text-center">
+
             <p className="text-lg font-medium">
               Ingen biler endnu
             </p>
@@ -174,6 +189,7 @@ export default function Home() {
             <p className="mt-2 text-sm text-white/40">
               Der er endnu ikke oprettet biler i systemet.
             </p>
+
           </div>
         )}
 
@@ -280,12 +296,14 @@ export default function Home() {
         {/* MOBILE ALL CARS */}
         {!loading && cars.length > 0 && (
           <div className="mt-8 text-center sm:hidden">
+
             <Link
               to="/biler"
               className="text-sm text-white/50 transition hover:text-white"
             >
               Se alle biler →
             </Link>
+
           </div>
         )}
 
@@ -293,9 +311,11 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="border-t border-white/10 bg-[#0b0b0d]">
+
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8">
 
           <div>
+
             <div className="font-semibold">
               EM<span className="text-accent">Cars</span>
             </div>
@@ -303,6 +323,7 @@ export default function Home() {
             <p className="mt-1 text-xs text-white/30">
               Kvalitetsbiler til salg
             </p>
+
           </div>
 
           <p className="text-xs text-white/25">
@@ -310,6 +331,7 @@ export default function Home() {
           </p>
 
         </div>
+
       </footer>
 
     </div>
